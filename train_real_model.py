@@ -10,7 +10,6 @@ df = pd.read_csv("phishing_data.csv")
 
 columns_to_drop = ['URL', 'Domain', 'TLD', 'Title']
 df = df.drop(columns=[c for c in columns_to_drop if c in df.columns])
-
 df = df.dropna()
 
 X = df.drop(columns=['label'])
@@ -31,18 +30,23 @@ print(f"Accuracy: {accuracy_score(y_test, y_pred) * 100:.2f}%")
 
 print("\n--- Explainability (SHAP) ---")
 explainer = shap.TreeExplainer(model)
+
+# Get SHAP values for the first URL in the test set
 shap_values = explainer.shap_values(X_test.iloc[:1])
 
 print(f"Explaining prediction for URL index: {X_test.index[0]}")
 prediction = y_pred[0]
 print(f"Model predicted: {'Phishing' if prediction == 1 else 'Benign'}")
 
-feature_impacts = list(zip(X.columns, shap_values[1][0]))
+# FIXED: For a single row, shap_values returns a list of arrays. 
+# shap_values[0] handles the single-row shape correctly.
+feature_impacts = list(zip(X.columns, shap_values[0][0]))
 feature_impacts.sort(key=lambda x: abs(x[1]), reverse=True)
 
 print("Top 5 features driving this decision:")
 for feature, impact in feature_impacts[:5]:
     print(f" - {feature}: {impact:.3f}")
 
+# Now it will successfully reach this line and overwrite the old model!
 joblib.dump(model, 'phishing_rf_model.pkl')
 print("\nModel successfully saved as 'phishing_rf_model.pkl'")
